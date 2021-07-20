@@ -12,11 +12,14 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.CommandBlockLogic;
 import net.minecraft.tileentity.CommandBlockTileEntity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
@@ -26,6 +29,8 @@ import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
+import net.minecraftforge.fml.event.server.FMLServerStoppingEvent;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,7 +50,7 @@ import java.util.*;
 public class MineDon {
     private static final Logger LOGGER = LogManager.getLogger();
     private OkHttpClient client = new OkHttpClient();
-    private final String MAIN_ADRESS = "http://9a5dbaa65e19.ngrok.io/";
+    private final String MAIN_ADRESS = "https://5b3e66fe14b2.ngrok.io/";
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
@@ -54,9 +59,13 @@ public class MineDon {
     public MineDon() {
         MinecraftForge.EVENT_BUS.register(this);
         JSONObject obj = ConfigManager.GetConfig();
-        //donattyToken = (String) obj.get("DonattyToken");
+        donattyToken = (String) obj.get("DonattyToken");
         mineDonId = (String) obj.get("MineDonId");
-        donattyToken = "https://api-007.donatty.com/widgets/bd5861e0-5fb3-41a6-86ed-7c3d186f4440/sse?jwt=eyJlbmMiOiJBMTI4R0NNIiwiYWxnIjoiUlNBLU9BRVAtMjU2In0.eo2ZZqSloW7_P5U_QRVOSu-NNbds2oNkh3_tgtqbpIGfZtAwHLBWSYB5kV6lBU6FNW4Q_sK1OvuLnCBx6w0kXvHOeolX9aeiYeBc6eQsRvo4xFvuQVO5LZmqbepotemD1XeUkp2RDjv_jZLYjo1H-btegjqn_cQEFz4dHSs76IuIFOLrXIRGeN_n4-02y_5X2S9SbhvcEBOgR7ESPK4P1NS4fDkMXMvXefMsrnw99Yzy8NmN-KsxNihKKTKoGy4Hba4ZGDYI50QVx-Gxv5JgszVhPz0pbp5N5IejOGLSofuxSGSvQ2p6k-oUGH_tDj6H09ip-2CjNoa1vMx_4mQUKw.tCL_DsQvKw8gDriq.04AYxG1QX_d1_IsuFh15ZAiwcdq-T900w2mVyZumS46idXiyWND2B3pQU4q0isT8NSJ5K5_eI2szYljncO1OE-bXz7iy3PpcbTXEv-7xVbABztjaXrdKUWhrlubgrw6RFpswpCLuklDSlX3K2A-C03MKzymOByuxWMe3RUcqBall2b78MQckSv9MULldAO9RDJjdOnTjdk7uJFroKoF2o8lDgWMJzrXhjSulFkSHmUAWDsl56g6wQfAsQoUnaGrQip0K4O6Kc5TJUu_EjGcZUtj6LTxjyBKD-3LxrTOaELK2XzTx6D2pO_JfSJ_VxsgyKEEYV-z_qegJGHCL_fZjGy0V50qYPxGECmaosdmRGd5bCWQ_diU.Ie95Nwf-uXD6WWxTweX2_g&zoneOffset=-300";
+    }
+
+    @SubscribeEvent
+    public void onWorldExit(FMLServerStoppingEvent event) {
+        SSE.close();
     }
 
     @SubscribeEvent
@@ -65,9 +74,10 @@ public class MineDon {
         String command = words[0];
         String[] args = Arrays.copyOfRange(words, 1, words.length);
         switch (command) {
-            case ".prepare": {
+            case ".load": {
                 try {
-                    String getOptionsRes = GetOptions(args);
+                    if (SSE != null) SSE.close();
+                    String getOptionsRes = GetOptions();
                     event.setMessage(getOptionsRes);
                     if (getOptionsRes.equals("OK")) StartSse();
                 } catch (Exception e) {
@@ -75,7 +85,7 @@ public class MineDon {
                 }
                 break;
             }
-            case ".setDonatty": {
+            case ".setDt": {
                 if (args.length < 1) {
                     event.setMessage("Token mustn't be empty");
                     return;
@@ -84,7 +94,7 @@ public class MineDon {
                 donattyToken = args[0];
                 break;
             }
-            case ".setMineDon": {
+            case ".setMD": {
                 if (args.length < 1) {
                     event.setMessage("Id mustn't be empty");
                     return;
@@ -123,10 +133,10 @@ public class MineDon {
         return serverWorld;
     }
 
-    private String GetOptions(String[] args) {
+    private String GetOptions() {
         try {
             Request request = new Request.Builder()
-                    .url(MAIN_ADRESS + "api/get_options?id=" + args[0])
+                    .url(MAIN_ADRESS + "api/get_options?id=" + mineDonId)
                     .get()
                     .build();
 
@@ -162,11 +172,17 @@ public class MineDon {
             if (action.equals("PING")) return;
 
             data = (JSONObject) data.get("data");
+
             JSONObject donateObject = (JSONObject) new JSONParser().parse((String) data.get("message"));
             String optionId = (String) donateObject.get("optionId");
             if (!OPTIONS.containsKey(optionId)) return;
 
-            ExecuteCommand((String) OPTIONS.get(optionId));
+            JSONObject command = (JSONObject) OPTIONS.get(optionId);
+
+            if ((long) data.get("amount") < (long) ((JSONObject) OPTIONS.get(optionId)).get("cost")) return;
+            TextComponent text = new StringTextComponent("Новый ивент! Название : " + command.get("name"));
+            Minecraft.getInstance().player.sendMessage(text, new UUID(1000, 1000));
+            ExecuteCommand((String) command.get("command"));
         } catch (Exception e) {
             e.printStackTrace();
         }
