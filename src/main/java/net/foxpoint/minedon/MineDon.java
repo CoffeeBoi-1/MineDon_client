@@ -50,7 +50,7 @@ import java.util.*;
 public class MineDon {
     private static final Logger LOGGER = LogManager.getLogger();
     private OkHttpClient client = new OkHttpClient();
-    private final String MAIN_ADRESS = "https://069619c984b6.ngrok.io/";
+    private final String MAIN_ADRESS = "https://fc4f1af5771a.ngrok.io/";
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
@@ -173,25 +173,40 @@ public class MineDon {
 
             data = (JSONObject) data.get("data");
 
-            JSONObject donateObject = (JSONObject) new JSONParser().parse((String) data.get("message"));
+            try {
+                JSONObject donateObject = (JSONObject) new JSONParser().parse((String) data.get("message"));
 
-            if (donateObject.containsKey("test")) {
-                TextComponent text = new StringTextComponent("Соединение в порядке!");
+                if (donateObject.containsKey("test")) {
+                    TextComponent text = new StringTextComponent("Соединение в порядке!");
+                    Minecraft.getInstance().player.sendMessage(text, new UUID(1000, 1000));
+                    return;
+                }
+            } catch (Exception e) {
+                LOGGER.info("da");
+                String optionId = GetOptionIdByCost((long) data.get("amount"));
+                if (!OPTIONS.containsKey(optionId)) return;
+
+                JSONObject command = (JSONObject) OPTIONS.get(optionId);
+
+                if ((long) data.get("amount") < (long) ((JSONObject) OPTIONS.get(optionId)).get("cost")) return;
+                TextComponent text = new StringTextComponent("Новый ивент! Название : " + command.get("name"));
                 Minecraft.getInstance().player.sendMessage(text, new UUID(1000, 1000));
-                return;
+                ExecuteCommand((String) command.get("command"));
             }
-
-            String optionId = (String) donateObject.get("optionId");
-            if (!OPTIONS.containsKey(optionId)) return;
-
-            JSONObject command = (JSONObject) OPTIONS.get(optionId);
-
-            if ((long) data.get("amount") < (long) ((JSONObject) OPTIONS.get(optionId)).get("cost")) return;
-            TextComponent text = new StringTextComponent("Новый ивент! Название : " + command.get("name"));
-            Minecraft.getInstance().player.sendMessage(text, new UUID(1000, 1000));
-            ExecuteCommand((String) command.get("command"));
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private String GetOptionIdByCost(long cost) {
+        Iterator<String> keys = OPTIONS.keySet().iterator();
+
+        while(keys.hasNext()) {
+            String key = keys.next();
+            if (OPTIONS.get(key) instanceof JSONObject) {
+                if ((long)((JSONObject) OPTIONS.get(key)).get("cost") == cost) return key;
+            }
+        }
+        return null;
     }
 }
