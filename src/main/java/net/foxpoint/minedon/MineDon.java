@@ -50,7 +50,7 @@ import java.util.*;
 public class MineDon {
     private static final Logger LOGGER = LogManager.getLogger();
     private OkHttpClient client = new OkHttpClient();
-    private final String MAIN_ADRESS = "https://5b3e66fe14b2.ngrok.io/";
+    private final String MAIN_ADRESS = "https://069619c984b6.ngrok.io/";
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
@@ -65,7 +65,7 @@ public class MineDon {
 
     @SubscribeEvent
     public void onWorldExit(FMLServerStoppingEvent event) {
-        SSE.close();
+        if (SSE != null) SSE.close();
     }
 
     @SubscribeEvent
@@ -174,6 +174,13 @@ public class MineDon {
             data = (JSONObject) data.get("data");
 
             JSONObject donateObject = (JSONObject) new JSONParser().parse((String) data.get("message"));
+
+            if (donateObject.containsKey("test")) {
+                TextComponent text = new StringTextComponent("Соединение в порядке!");
+                Minecraft.getInstance().player.sendMessage(text, new UUID(1000, 1000));
+                return;
+            }
+
             String optionId = (String) donateObject.get("optionId");
             if (!OPTIONS.containsKey(optionId)) return;
 
