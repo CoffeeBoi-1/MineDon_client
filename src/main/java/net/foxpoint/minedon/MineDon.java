@@ -34,6 +34,7 @@ import net.minecraftforge.fml.event.server.FMLServerStoppingEvent;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.glassfish.jersey.server.Uri;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -44,6 +45,7 @@ import javax.ws.rs.sse.SseEventSource;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.net.URI;
 import java.util.*;
 
 @Mod("minedon")
@@ -90,8 +92,11 @@ public class MineDon {
                     event.setMessage("Token mustn't be empty");
                     return;
                 }
-                event.setMessage(ConfigManager.SaveConfig(args[0], mineDonId));
-                donattyToken = args[0];
+                String sseLink = GetSSE(args[0], args[1]);
+                if (sseLink == null) {event.setMessage("Something went wrong! Check token"); return;};
+
+                event.setMessage(ConfigManager.SaveConfig(sseLink, mineDonId));
+                donattyToken = sseLink;
                 break;
             }
             case ".setMD": {
@@ -99,6 +104,8 @@ public class MineDon {
                     event.setMessage("Id mustn't be empty");
                     return;
                 }
+                if (!ValidMineDonId(args[0])) {event.setMessage("Нет такого пользователя!"); return;}
+
                 event.setMessage(ConfigManager.SaveConfig(donattyToken, args[0]));
                 mineDonId = args[0];
                 break;
@@ -182,7 +189,6 @@ public class MineDon {
                     return;
                 }
             } catch (Exception e) {
-                LOGGER.info("da");
                 String optionId = GetOptionIdByCost((long) data.get("amount"));
                 if (!OPTIONS.containsKey(optionId)) return;
 
@@ -208,5 +214,46 @@ public class MineDon {
             }
         }
         return null;
+    }
+
+    private String GetSSE(String widgetId, String widgetToken) {
+        try {
+            Request request = new Request.Builder()
+                    .url("https://api-007.donatty.com/auth/tokens/" + widgetToken)
+                    .get()
+                    .build();
+
+            Response response = client.newCall(request).execute();
+            JSONObject serverAnswer = null;
+            serverAnswer = (JSONObject) new JSONParser().parse(response.body().string());
+
+            if (serverAnswer.get("response") == null) return null;
+            if (((JSONObject)serverAnswer.get("response")).get("accessToken") == null) return null;
+            if (serverAnswer == null) return null;
+            if (response.code() != 200) {
+                return null;
+            }
+
+            String answer = "https://api-007.donatty.com/widgets/" + widgetId + "/sse?jwt=" + (String) ((JSONObject)serverAnswer.get("response")).get("accessToken");
+            return answer;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private boolean ValidMineDonId(String id) {
+        try {
+            Request request = new Request.Builder()
+                    .url(MAIN_ADRESS + "api/id_valid?id=" + id)
+                    .get()
+                    .build();
+
+            Response response = client.newCall(request).execute();
+
+            if (response.code() == 200) return true;
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
