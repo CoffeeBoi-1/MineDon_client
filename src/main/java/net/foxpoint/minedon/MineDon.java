@@ -1,51 +1,27 @@
 package net.foxpoint.minedon;
 
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.tree.CommandNode;
 import net.minecraft.block.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.tileentity.CommandBlockLogic;
 import net.minecraft.tileentity.CommandBlockTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.math.vector.Vector3i;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.CommandEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
 import net.minecraftforge.fml.event.server.FMLServerStoppingEvent;
 import okhttp3.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.glassfish.jersey.server.Uri;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.sse.InboundSseEvent;
-import javax.ws.rs.sse.SseEventSource;
-
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.net.URI;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 @Mod("minedon")
@@ -56,7 +32,7 @@ public class MineDon {
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
-    private SseEventSource SSE;
+    private InputStream SSE;
 
     public MineDon() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -67,7 +43,13 @@ public class MineDon {
 
     @SubscribeEvent
     public void onWorldExit(FMLServerStoppingEvent event) {
-        if (SSE != null) SSE.close();
+        if (SSE != null) {
+            try {
+                SSE.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @SubscribeEvent
@@ -163,18 +145,13 @@ public class MineDon {
     }
 
     private void StartSse() {
-        WebTarget target = ClientBuilder.newClient().target(donattyToken);
-        SSE = SseEventSource.
-                target(target)
-                .reconnectingEvery(2, SECONDS)
-                .build();
-        SSE.register(this::onMessage);
-        SSE.open();
+        SSE = SseClient.GetSseInputStream(donattyToken);
+        SseClient.ReadStream(SSE, this::onMessage);
     }
 
-    private void onMessage(InboundSseEvent event) {
+    private void onMessage(InputStream IS, String dataString) {
         try {
-            JSONObject data = (JSONObject) new JSONParser().parse(event.readData());
+            JSONObject data = (JSONObject) new JSONParser().parse(dataString.substring(5));
             String action = (String) data.get("action");
             if (action.equals("PING")) return;
 
