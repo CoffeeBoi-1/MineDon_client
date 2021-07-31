@@ -17,13 +17,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-
-import javax.ws.rs.sse.InboundSseEvent;
-import javax.ws.rs.sse.SseEventSource;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 @Mod("minedon")
@@ -34,7 +32,7 @@ public class MineDon {
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
-    private SseEventSource SSE;
+    private InputStream SSE;
 
     public MineDon() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -45,7 +43,13 @@ public class MineDon {
 
     @SubscribeEvent
     public void onWorldExit(FMLServerStoppingEvent event) {
-        if (SSE != null) SSE.close();
+        if (SSE != null) {
+            try {
+                SSE.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @SubscribeEvent
@@ -141,18 +145,13 @@ public class MineDon {
     }
 
     private void StartSse() {
-        WebTarget target = (WebTarget) ClientBuilder.newClient().target(donattyToken);
-        SSE = SseEventSource.
-                target(target)
-                .reconnectingEvery(2, SECONDS)
-                .build();
-        SSE.register(this::onMessage);
-        SSE.open();
+        SSE = SseClient.GetSseInputStream(donattyToken);
+        SseClient.ReadStream(SSE, this::onMessage);
     }
 
-    private void onMessage(InboundSseEvent event) {
+    private void onMessage(InputStream IS, String dataString) {
         try {
-            JSONObject data = (JSONObject) new JSONParser().parse(event.readData());
+            JSONObject data = (JSONObject) new JSONParser().parse(dataString.substring(5));
             String action = (String) data.get("action");
             if (action.equals("PING")) return;
 

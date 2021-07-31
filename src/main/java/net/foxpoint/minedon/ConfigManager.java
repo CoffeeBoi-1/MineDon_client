@@ -32,7 +32,7 @@ public class ConfigManager {
             JSONObject obj = new JSONObject();
             obj.put("DonattyToken", DonattyToken);
             obj.put("MineDonId", MineDonId);
-            file.write(obj.toJSONString());
+            file.write(obj.toJSONString().replace("\\", ""));
             file.flush();
             return "Saved.";
         } catch (Exception e) {
