@@ -52,7 +52,7 @@ import java.util.*;
 public class MineDon {
     private static final Logger LOGGER = LogManager.getLogger();
     private OkHttpClient client = new OkHttpClient();
-    private final String MAIN_ADRESS = "https://fc4f1af5771a.ngrok.io/";
+    private final String MAIN_ADRESS = "https://mine-don-server.herokuapp.com/";
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
@@ -88,7 +88,7 @@ public class MineDon {
                 break;
             }
             case ".setDt": {
-                if (args.length < 1) {
+                if (args.length < 2) {
                     event.setMessage("Token mustn't be empty");
                     return;
                 }
