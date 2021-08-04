@@ -28,7 +28,7 @@ import java.util.*;
 public class MineDon {
     private static final Logger LOGGER = LogManager.getLogger();
     private OkHttpClient client = new OkHttpClient();
-    private final String MAIN_ADRESS = "https://mine-don-server.herokuapp.com/";
+    private final String MAIN_ADRESS = "https://mine-don.herokuapp.com/";
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
