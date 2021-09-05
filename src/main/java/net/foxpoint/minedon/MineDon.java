@@ -17,10 +17,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
@@ -28,7 +24,7 @@ import java.util.*;
 public class MineDon {
     private static final Logger LOGGER = LogManager.getLogger();
     private OkHttpClient client = new OkHttpClient();
-    private final String MAIN_ADRESS = "https://mine-don.herokuapp.com/";
+    private final String MAIN_ADRESS = "http://92.53.107.191/";
     private String donattyToken;
     private String mineDonId;
     private JSONObject OPTIONS;
