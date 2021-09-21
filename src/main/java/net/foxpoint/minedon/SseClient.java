@@ -35,7 +35,6 @@ public class SseClient {
         try {
             new Thread(() -> {
                 try {
-                    LogManager.getLogger().info("TATA!");
                     BufferedReader reader = new BufferedReader(new InputStreamReader(IS));
                     String line = "";
                     while ((line = reader.readLine()) != null) {

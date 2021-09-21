@@ -11,6 +11,7 @@ import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.client.event.ClientChatEvent;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.logging.log4j.LogManager;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -32,14 +33,14 @@ public class LoadCommand implements ICustomCommand {
                 MineDon.getInstance().SSEDonatty = null;
             }
             String getOptionsRes = GetOptions();
-            event.setMessage(getOptionsRes);
-            if (getOptionsRes.equals("OK")) StartSse();
+            if (getOptionsRes.equals("OK")) StartSse(event);
+            else { event.setMessage("Что-то пошло не так!"); }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private String GetOptions() {
+    protected String GetOptions() {
         try {
             Request request = new Request.Builder()
                     .url(MineDon.getInstance().MAIN_ADDRESS + "api/get_options?id=" + MineDon.getInstance().mineDonId)
@@ -61,13 +62,21 @@ public class LoadCommand implements ICustomCommand {
         }
     }
 
-    private void StartSse() {
-        MineDon.getInstance().SSEDonatty = SseClient.GetSseInputStream(MineDon.getInstance().donattyToken);
+    private void StartSse(ClientChatEvent event) {
+        InputStream inputStream = SseClient.GetSseInputStream(MineDon.getInstance().donattyToken);
+        if (inputStream == null) { event.setMessage("Что-то пошло не так! Попробуйте обновить токен"); return; }
+
+        MineDon.getInstance().SSEDonatty = inputStream;
         SseClient.ReadStream(MineDon.getInstance().SSEDonatty, this::onMessage);
+
+        event.setMessage("OK");
     }
 
-    private void onMessage(InputStream IS, String dataString) {
+    protected void onMessage(InputStream IS, String dataString) {
         try {
+            LogManager.getLogger().info(dataString);
+            if (dataString.length() < 5) return;
+
             JSONObject data = (JSONObject) new JSONParser().parse(dataString.substring(5));
             String action = (String) data.get("action");
             if (action.equals("PING")) return;
@@ -111,7 +120,7 @@ public class LoadCommand implements ICustomCommand {
         return null;
     }
 
-    private static void ExecuteCommand(String command) {
+    private void ExecuteCommand(String command) {
         ServerWorld serverWorld = GetPlayerWorld();
         BlockState blockState = Blocks.COMMAND_BLOCK.defaultBlockState();
         CommandBlockTileEntity entity = (CommandBlockTileEntity) blockState.getBlock().createTileEntity(blockState, serverWorld);
