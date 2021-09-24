@@ -5,8 +5,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class SetMineDonCommand implements ICustomCommand {
-    @Override
-    public String getCommandName() {
+    public static String getCommandName() {
         return ".setMD";
     }
 

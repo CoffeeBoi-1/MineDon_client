@@ -20,8 +20,7 @@ import java.util.Iterator;
 import java.util.UUID;
 
 public class LoadCommand implements ICustomCommand {
-    @Override
-    public String getCommandName() {
+    public static String getCommandName() {
         return ".load";
     }
 

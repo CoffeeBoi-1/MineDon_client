@@ -7,9 +7,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 public class SetDonattyCommand implements ICustomCommand{
-
-    @Override
-    public String getCommandName() {
+    public static String getCommandName() {
         return ".setDT";
     }
 

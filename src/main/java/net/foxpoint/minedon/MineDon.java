@@ -32,19 +32,11 @@ public class MineDon {
         donattyToken = (String) obj.get("DonattyToken");
         mineDonId = (String) obj.get("MineDonId");
 
-        try {
-            Set<Class<? extends ICustomCommand>> commands = new ClassFinder(ICustomCommand.class).getClasses();
-
-            commands.forEach(command -> {
-                try {
-                    COMMANDS.put(command.newInstance().getCommandName(), command.newInstance());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        COMMANDS.put(LoadCommand.getCommandName(), new LoadCommand());
+        COMMANDS.put(ConnectSSEBotCommand.getCommandName(), new ConnectSSEBotCommand());
+        COMMANDS.put(SetDonattyCommand.getCommandName(), new SetDonattyCommand());
+        COMMANDS.put(SetMineDonCommand.getCommandName(), new SetMineDonCommand());
+        COMMANDS.put(HelpCommand.getCommandName(), new HelpCommand());
     }
 
     public static MineDon getInstance() {

@@ -5,8 +5,7 @@ import net.minecraftforge.client.event.ClientChatEvent;
 import java.io.InputStream;
 
 public class ConnectSSEBotCommand extends LoadCommand {
-    @Override
-    public String getCommandName() {
+    public static String getCommandName() {
         return ".conBot";
     }
 
